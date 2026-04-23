@@ -9,7 +9,6 @@
 <body>
     <div class="wrapper">
 
-        <!-- HEADER -->
         <header class="header">
             <div class="logo-line">
                 <div class="logo-icon">
@@ -20,24 +19,44 @@
                 </div>
                 <h1 class="app-title">Stego<span>Vault</span></h1>
             </div>
-            <p class="tagline">// conceal · transmit · reveal</p>
+            <p class="tagline">// vigenere · aes-256 · lsb steganography</p>
         </header>
 
         <div class="status-bar">
             <div class="status-dot"></div>
             <span>SYSTEM ONLINE</span>
             <span class="sep">|</span>
-            <span>LSB ENGINE READY</span>
+            <span>VIGENERE + AES-256</span>
             <span class="sep">|</span>
-            <span>PNG LOSSLESS MODE</span>
+            <span>LSB PNG MODE</span>
         </div>
 
-        <!-- MAIN GRID -->
+        <!-- Encryption info banner -->
+        <div class="crypto-banner">
+            <div class="crypto-layer">
+                <span class="crypto-num">01</span>
+                <span class="crypto-name">VIGENERE CIPHER</span>
+                <span class="crypto-desc">Classical substitution · printable ASCII · key derived from password</span>
+            </div>
+            <div class="crypto-arrow">→</div>
+            <div class="crypto-layer">
+                <span class="crypto-num">02</span>
+                <span class="crypto-name">AES-256 CBC</span>
+                <span class="crypto-desc">Modern block cipher · 256-bit key · PKCS7 padding</span>
+            </div>
+            <div class="crypto-arrow">→</div>
+            <div class="crypto-layer">
+                <span class="crypto-num">03</span>
+                <span class="crypto-name">LSB STEGANOGRAPHY</span>
+                <span class="crypto-desc">Bit-level concealment · 3-channel RGB · PNG lossless</span>
+            </div>
+        </div>
+
         <div class="panels">
 
-            <!-- ── ENCODE PANEL ── -->
+            <!-- ══ ENCODE PANEL ══ -->
             <div class="panel panel-encode">
-                <div class="hex-strip">53 54 45 47 4F 56 41 55 4C 54 20 2F 2F 20 45 4E 43 4F 44 45 52 20 4D 4F 44 55 4C 45</div>
+                <div class="hex-strip">53 54 45 47 4F 56 41 55 4C 54 20 2F 2F 20 45 4E 43 4F 44 45 52</div>
 
                 <div class="panel-header">
                     <div>
@@ -54,11 +73,11 @@
                     <button class="mode-tab" data-mode="file">FILE</button>
                 </div>
 
-                <!-- MODE: TEXT -->
+                <!-- TEXT -->
                 <form id="form-text" class="encode-form active" action="/encode/text" method="post" enctype="multipart/form-data">
                     <div class="field-group">
                         <label class="field-label">// carrier image</label>
-                        <div class="file-zone encode-zone" data-name="text-carrier">
+                        <div class="file-zone encode-zone">
                             <input type="file" name="image" required accept="image/*">
                             <span class="file-icon">◈</span>
                             <div class="file-text">DROP IMAGE OR CLICK TO SELECT</div>
@@ -67,16 +86,27 @@
                     </div>
                     <div class="field-group">
                         <label class="field-label">// secret text payload</label>
-                        <textarea name="text" rows="5" placeholder="Enter classified message...&#10;Will be encoded into carrier image via LSB."></textarea>
+                        <textarea name="text" rows="4" placeholder="Enter classified message..."></textarea>
                     </div>
-                    <button type="submit" class="btn btn-encode">⬡ Encode &amp; Download</button>
+                    <div class="field-group">
+                        <label class="field-label">// encryption password</label>
+                        <div class="input-wrap">
+                            <input type="password" name="password" required placeholder="Password untuk enkripsi Vigenere + AES-256" class="text-input">
+                            <button type="button" class="toggle-pw" title="Show/Hide">◉</button>
+                        </div>
+                    </div>
+                    <div class="info-box cyan">
+                        <p>Text: Vigenere → AES-256 (double layer)</p>
+                        <p>Key derivasi otomatis dari password via SHA-256</p>
+                    </div>
+                    <button type="submit" class="btn btn-encode">⬡ Encrypt &amp; Encode</button>
                 </form>
 
-                <!-- MODE: IMAGE -->
+                <!-- IMAGE -->
                 <form id="form-image" class="encode-form" action="/encode/image" method="post" enctype="multipart/form-data">
                     <div class="field-group">
                         <label class="field-label">// carrier image</label>
-                        <div class="file-zone encode-zone" data-name="img-carrier">
+                        <div class="file-zone encode-zone">
                             <input type="file" name="carrier" required accept="image/*">
                             <span class="file-icon">◈</span>
                             <div class="file-text">DROP CARRIER IMAGE</div>
@@ -85,25 +115,32 @@
                     </div>
                     <div class="field-group">
                         <label class="field-label">// secret image to hide</label>
-                        <div class="file-zone encode-zone" data-name="img-secret">
+                        <div class="file-zone encode-zone">
                             <input type="file" name="secret_image" required accept="image/*">
                             <span class="file-icon">◈</span>
                             <div class="file-text">DROP SECRET IMAGE</div>
                             <div class="file-name"></div>
                         </div>
                     </div>
-                    <div class="info-box cyan">
-                        <p>Carrier must be large enough to hold secret image data</p>
-                        <p>Output saved as lossless PNG to preserve LSB integrity</p>
+                    <div class="field-group">
+                        <label class="field-label">// encryption password</label>
+                        <div class="input-wrap">
+                            <input type="password" name="password" required placeholder="Password untuk enkripsi AES-256" class="text-input">
+                            <button type="button" class="toggle-pw" title="Show/Hide">◉</button>
+                        </div>
                     </div>
-                    <button type="submit" class="btn btn-encode">⬡ Encode &amp; Download</button>
+                    <div class="info-box cyan">
+                        <p>Binary data: AES-256 CBC encryption</p>
+                        <p>Carrier harus cukup besar untuk menampung secret image</p>
+                    </div>
+                    <button type="submit" class="btn btn-encode">⬡ Encrypt &amp; Encode</button>
                 </form>
 
-                <!-- MODE: FILE -->
+                <!-- FILE -->
                 <form id="form-file" class="encode-form" action="/encode/file" method="post" enctype="multipart/form-data">
                     <div class="field-group">
                         <label class="field-label">// carrier image</label>
-                        <div class="file-zone encode-zone" data-name="file-carrier">
+                        <div class="file-zone encode-zone">
                             <input type="file" name="carrier" required accept="image/*">
                             <span class="file-icon">◈</span>
                             <div class="file-text">DROP CARRIER IMAGE</div>
@@ -112,25 +149,31 @@
                     </div>
                     <div class="field-group">
                         <label class="field-label">// secret file to hide</label>
-                        <div class="file-zone encode-zone" data-name="file-secret">
+                        <div class="file-zone encode-zone">
                             <input type="file" name="secret_file" required>
                             <span class="file-icon">◈</span>
                             <div class="file-text">DROP ANY FILE (PDF, ZIP, DOC…)</div>
                             <div class="file-name"></div>
                         </div>
                     </div>
-                    <div class="info-box cyan">
-                        <p>Filename is preserved and embedded in the payload header</p>
-                        <p>Supports any binary file type</p>
+                    <div class="field-group">
+                        <label class="field-label">// encryption password</label>
+                        <div class="input-wrap">
+                            <input type="password" name="password" required placeholder="Password untuk enkripsi AES-256" class="text-input">
+                            <button type="button" class="toggle-pw" title="Show/Hide">◉</button>
+                        </div>
                     </div>
-                    <button type="submit" class="btn btn-encode">⬡ Encode &amp; Download</button>
+                    <div class="info-box cyan">
+                        <p>Binary data: AES-256 CBC encryption</p>
+                        <p>Filename asli disimpan di dalam payload header</p>
+                    </div>
+                    <button type="submit" class="btn btn-encode">⬡ Encrypt &amp; Encode</button>
                 </form>
-
             </div>
 
-            <!-- ── DECODE PANEL ── -->
+            <!-- ══ DECODE PANEL ══ -->
             <div class="panel panel-decode">
-                <div class="hex-strip">53 54 45 47 4F 56 41 55 4C 54 20 2F 2F 20 44 45 43 4F 44 45 52 20 4D 4F 44 55 4C 45</div>
+                <div class="hex-strip">53 54 45 47 4F 56 41 55 4C 54 20 2F 2F 20 44 45 43 4F 44 45 52</div>
 
                 <div class="panel-header">
                     <div>
@@ -150,32 +193,48 @@
                     </div>
                 </div>
 
-                <div class="info-box green">
-                    <p>Auto-detect payload type (text / image / file)</p>
-                    <p>Preview result before downloading</p>
-                    <p>Original filename preserved for file payloads</p>
+                <div class="field-group">
+                    <label class="field-label">// decryption password</label>
+                    <div class="input-wrap">
+                        <input type="password" id="decode-password" placeholder="Password yang sama saat encode" class="text-input">
+                        <button type="button" class="toggle-pw" title="Show/Hide">◉</button>
+                    </div>
                 </div>
 
-                <button class="btn btn-decode" id="decode-btn">⬡ Extract Payload</button>
+                <div class="info-box green">
+                    <p>Auto-detect payload type (text / image / file)</p>
+                    <p>AES-256 decrypt → Vigenere decrypt (untuk text)</p>
+                    <p>Preview hasil sebelum download</p>
+                </div>
 
-                <!-- RESULT AREA -->
+                <button class="btn btn-decode" id="decode-btn">⬡ Decrypt &amp; Extract</button>
+
+                <!-- Loading -->
+                <div id="decode-loading" class="loading hidden">
+                    <span class="loading-dot"></span>
+                    <span class="loading-dot"></span>
+                    <span class="loading-dot"></span>
+                    <span class="loading-label">DECRYPTING PAYLOAD...</span>
+                </div>
+
+                <!-- Error -->
+                <div id="decode-error" class="error-box hidden"></div>
+
+                <!-- Result -->
                 <div id="decode-result" class="decode-result hidden">
                     <div class="result-header">
                         <span class="field-label" style="margin:0;">// extracted payload</span>
                         <span class="result-type-badge" id="result-type-badge"></span>
                     </div>
 
-                    <!-- Text result -->
                     <div id="result-text" class="result-block hidden">
                         <pre id="result-text-content"></pre>
                     </div>
 
-                    <!-- Image result -->
                     <div id="result-image" class="result-block hidden">
                         <img id="result-image-preview" src="" alt="Decoded image">
                     </div>
 
-                    <!-- File result -->
                     <div id="result-file" class="result-block hidden">
                         <div class="file-result-info">
                             <span class="file-icon" style="font-size:1.8rem; color: var(--accent-green);">◈</span>
@@ -186,154 +245,202 @@
                         </div>
                     </div>
 
-                    <a id="download-link" href="#" class="btn btn-decode" style="display:none; text-decoration:none; text-align:center; margin-top:0.75rem;">
+                    <a id="download-link" href="#" class="btn btn-decode"
+                       style="display:none; text-decoration:none; text-align:center; margin-top:0.75rem;">
                         ⬡ Download Extracted File
                     </a>
                 </div>
-
-                <!-- Error -->
-                <div id="decode-error" class="error-box hidden"></div>
-
-                <!-- Loading -->
-                <div id="decode-loading" class="loading hidden">
-                    <span class="loading-dot"></span>
-                    <span class="loading-dot"></span>
-                    <span class="loading-dot"></span>
-                    <span style="margin-left:0.5rem; font-family: var(--font-mono); font-size:0.65rem; color: var(--text-muted);">SCANNING LSB CHANNELS...</span>
-                </div>
-
             </div>
+
         </div>
 
         <footer class="footer">
-            <span>FLASK</span> + <span>PYTHON</span> BACKEND &nbsp;//&nbsp;
-            LSB STEGANOGRAPHY ENGINE v3.0 &nbsp;//&nbsp;
-            <span style="color: var(--accent-cyan);">SECURE CHANNEL</span>
+            <span>FLASK</span> + <span>PYTHON</span> &nbsp;//&nbsp;
+            VIGENERE + AES-256 + LSB &nbsp;//&nbsp;
+            <span style="color: var(--accent-cyan);">DOUBLE LAYER CRYPTO</span>
         </footer>
     </div>
 
-    <script>
-        // ── Mode tabs ──
-        document.querySelectorAll('.mode-tab').forEach(tab => {
-            tab.addEventListener('click', () => {
-                document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
-                document.querySelectorAll('.encode-form').forEach(f => f.classList.remove('active'));
-                tab.classList.add('active');
-                document.getElementById('form-' + tab.dataset.mode).classList.add('active');
-            });
+<!-- Ganti SELURUH blok <script> dengan ini -->
+<script>
+    // ── Mode tabs ──
+    document.querySelectorAll('.mode-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.encode-form').forEach(f => f.classList.remove('active'));
+            tab.classList.add('active');
+            document.getElementById('form-' + tab.dataset.mode).classList.add('active');
         });
+    });
 
-        // ── File input label update ──
-        document.querySelectorAll('.file-zone input[type="file"]').forEach(input => {
-            input.addEventListener('change', function () {
-                const zone = this.closest('.file-zone');
-                const nameEl = zone.querySelector('.file-name');
-                if (this.files.length > 0) {
-                    nameEl.textContent = '> ' + this.files[0].name;
-                    nameEl.style.display = 'block';
-                }
-            });
-        });
-
-        // Decode file input
-        document.getElementById('decode-file').addEventListener('change', function () {
-            const nameEl = document.getElementById('decode-fname');
+    // ── File input labels ──
+    document.querySelectorAll('.file-zone input[type="file"]').forEach(input => {
+        input.addEventListener('change', function () {
+            const nameEl = this.closest('.file-zone').querySelector('.file-name');
             if (this.files.length > 0) {
                 nameEl.textContent = '> ' + this.files[0].name;
                 nameEl.style.display = 'block';
             }
-            // Reset result
-            document.getElementById('decode-result').classList.add('hidden');
-            document.getElementById('decode-error').classList.add('hidden');
         });
+    });
 
-        // ── Decode via AJAX ──
-        document.getElementById('decode-btn').addEventListener('click', async () => {
-            const fileInput = document.getElementById('decode-file');
-            if (!fileInput.files.length) {
-                showError('Please select an encoded image first.');
-                return;
-            }
+    document.getElementById('decode-file').addEventListener('change', function () {
+        const nameEl = document.getElementById('decode-fname');
+        if (this.files.length > 0) {
+            nameEl.textContent = '> ' + this.files[0].name;
+            nameEl.style.display = 'block';
+        }
+        hideResult();
+    });
 
-            const formData = new FormData();
-            formData.append('image', fileInput.files[0]);
+    // ── Show/hide password ──
+    document.querySelectorAll('.toggle-pw').forEach(btn => {
+        btn.addEventListener('click', function () {
+            const input = this.previousElementSibling;
+            input.type  = input.type === 'password' ? 'text' : 'password';
+            this.style.opacity = input.type === 'text' ? '1' : '0.5';
+        });
+    });
 
-            setLoading(true);
-            hideAll();
-
+    // ── Encode forms (semua mode) ──
+    document.querySelectorAll('.encode-form').forEach(form => {
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData  = new FormData(form);
+            const submitBtn = form.querySelector('button[type="submit"]');
+            const origText  = submitBtn.textContent;
+            submitBtn.textContent = 'PROCESSING...';
+            submitBtn.disabled    = true;
             try {
-                const res = await fetch('/decode', { method: 'POST', body: formData });
-                const data = await res.json();
-
-                if (!res.ok) {
-                    showError(data.error || 'Decoding failed.');
-                    return;
+                const response = await fetch(form.action, { method: 'POST', body: formData });
+                if (response.ok) {
+                    const blob = await response.blob();
+                    triggerDownload(URL.createObjectURL(blob), 'stegovault_encoded.png');
+                } else {
+                    const err = await response.json();
+                    alert('ERROR: ' + err.error);
                 }
-
-                showResult(data);
-            } catch (e) {
-                showError('Network error: ' + e.message);
+            } catch (err) {
+                alert('Terjadi kesalahan jaringan atau server.');
             } finally {
-                setLoading(false);
+                submitBtn.textContent = origText;
+                submitBtn.disabled    = false;
             }
         });
+    });
 
-        function hideAll() {
-            document.getElementById('decode-result').classList.add('hidden');
-            document.getElementById('decode-error').classList.add('hidden');
-            ['result-text','result-image','result-file'].forEach(id =>
-                document.getElementById(id).classList.add('hidden'));
-            document.getElementById('download-link').style.display = 'none';
+    // ── Decode via AJAX ──
+    document.getElementById('decode-btn').addEventListener('click', async () => {
+        const fileInput = document.getElementById('decode-file');
+        const password  = document.getElementById('decode-password').value;
+
+        if (!fileInput.files.length) { showError('Pilih gambar yang ingin di-decode.'); return; }
+        if (!password)               { showError('Password tidak boleh kosong.'); return; }
+
+        hideResult();
+        setLoading(true);
+
+        const formData = new FormData();
+        formData.append('image',    fileInput.files[0]);
+        formData.append('password', password);
+
+        try {
+            const res  = await fetch('/decode', { method: 'POST', body: formData });
+            const data = await res.json();
+            if (!res.ok) { showError(data.error || 'Decoding gagal.'); return; }
+            showResult(data);
+        } catch (e) {
+            showError('Network error: ' + e.message);
+        } finally {
+            setLoading(false);
         }
+    });
 
-        function setLoading(show) {
-            document.getElementById('decode-loading').classList.toggle('hidden', !show);
+    // ── Helpers ──
+
+    function triggerDownload(url, filename) {
+        const a = document.createElement('a');
+        a.href     = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+    }
+
+    // Konversi base64 → Blob → object URL → trigger download
+    function base64Download(b64, mime, filename) {
+        const binary = atob(b64);
+        const bytes  = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+        const blob = new Blob([bytes], { type: mime });
+        triggerDownload(URL.createObjectURL(blob), filename);
+    }
+
+    function hideResult() {
+        document.getElementById('decode-result').classList.add('hidden');
+        document.getElementById('decode-error').classList.add('hidden');
+        ['result-text', 'result-image', 'result-file'].forEach(id =>
+            document.getElementById(id).classList.add('hidden'));
+        document.getElementById('download-link').style.display = 'none';
+    }
+
+    function setLoading(show) {
+        document.getElementById('decode-loading').classList.toggle('hidden', !show);
+    }
+
+    function showError(msg) {
+        const el = document.getElementById('decode-error');
+        el.textContent = '> ERROR: ' + msg;
+        el.classList.remove('hidden');
+    }
+
+    function showResult(data) {
+        const resultEl = document.getElementById('decode-result');
+        const badge    = document.getElementById('result-type-badge');
+        const dl       = document.getElementById('download-link');
+        resultEl.classList.remove('hidden');
+
+        if (data.type === 'text') {
+            badge.textContent = 'TEXT';
+            badge.className   = 'result-type-badge type-text';
+            document.getElementById('result-text-content').textContent = data.content;
+            document.getElementById('result-text').classList.remove('hidden');
+
+        } else if (data.type === 'image') {
+            badge.textContent = 'IMAGE';
+            badge.className   = 'result-type-badge type-image';
+            document.getElementById('result-image-preview').src = data.preview;
+            document.getElementById('result-image').classList.remove('hidden');
+
+            // ✅ Download dari base64 — tidak perlu /download/ route
+            dl.style.display = 'block';
+            dl.onclick = (e) => {
+                e.preventDefault();
+                base64Download(data.preview.split(',')[1], data.mime, data.filename);
+            };
+
+        } else if (data.type === 'file') {
+            badge.textContent = 'FILE';
+            badge.className   = 'result-type-badge type-file';
+            document.getElementById('result-file-name').textContent = data.filename;
+            document.getElementById('result-file-size').textContent =
+                formatBytes(data.size) + ' · ' + (data.mime || 'binary');
+            document.getElementById('result-file').classList.remove('hidden');
+
+            // ✅ Download dari base64 — tidak perlu /download/ route
+            dl.style.display = 'block';
+            dl.onclick = (e) => {
+                e.preventDefault();
+                base64Download(data.data, data.mime, data.filename);
+            };
         }
+    }
 
-        function showError(msg) {
-            const el = document.getElementById('decode-error');
-            el.textContent = '> ERROR: ' + msg;
-            el.classList.remove('hidden');
-        }
-
-        function showResult(data) {
-            const resultEl = document.getElementById('decode-result');
-            const badge = document.getElementById('result-type-badge');
-            resultEl.classList.remove('hidden');
-
-            if (data.type === 'text') {
-                badge.textContent = 'TEXT';
-                badge.className = 'result-type-badge type-text';
-                document.getElementById('result-text-content').textContent = data.content;
-                document.getElementById('result-text').classList.remove('hidden');
-
-            } else if (data.type === 'image') {
-                badge.textContent = 'IMAGE';
-                badge.className = 'result-type-badge type-image';
-                document.getElementById('result-image-preview').src = data.preview;
-                document.getElementById('result-image').classList.remove('hidden');
-                const dl = document.getElementById('download-link');
-                dl.href = data.download_url;
-                dl.style.display = 'block';
-
-            } else if (data.type === 'file') {
-                badge.textContent = 'FILE';
-                badge.className = 'result-type-badge type-file';
-                document.getElementById('result-file-name').textContent = data.filename;
-                document.getElementById('result-file-size').textContent =
-                    formatBytes(data.size) + ' · ' + (data.mime || 'binary');
-                document.getElementById('result-file').classList.remove('hidden');
-                const dl = document.getElementById('download-link');
-                dl.href = data.download_url;
-                dl.style.display = 'block';
-            }
-        }
-
-        function formatBytes(bytes) {
-            if (bytes < 1024) return bytes + ' B';
-            if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
-            return (bytes / 1048576).toFixed(1) + ' MB';
-        }
-    </script>
+    function formatBytes(b) {
+        if (b < 1024)    return b + ' B';
+        if (b < 1048576) return (b / 1024).toFixed(1) + ' KB';
+        return (b / 1048576).toFixed(1) + ' MB';
+    }
+</script>
 </body>
 </html>

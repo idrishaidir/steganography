@@ -7,14 +7,9 @@ import os
 import base64
 import mimetypes
 import struct
+import io
 
 app = Flask(__name__)
-
-UPLOAD_FOLDER = 'uploads'
-RESULT_FOLDER = 'results'
-
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-os.makedirs(RESULT_FOLDER, exist_ok=True)
 
 # ─────────────────────────────────────────────────────────────────
 #  PAYLOAD HEADER FORMAT
@@ -32,16 +27,9 @@ TYPE_FILE  = 0x03
 
 # ═══════════════════════════════════════════════════════════════
 #  KEY DERIVATION
-#  Dari 1 password → hasilkan kunci Vigenere & kunci AES-256
 # ═══════════════════════════════════════════════════════════════
 
 def derive_keys(password: str):
-    """
-    Hasilkan dua kunci dari satu password menggunakan SHA-256:
-      - vigenere_key : string 32 karakter huruf kapital (A-Z)
-      - aes_key      : 32 bytes untuk AES-256
-      - aes_iv       : 16 bytes IV untuk AES CBC
-    """
     h1 = hashlib.sha256(password.encode('utf-8')).digest()
     h2 = hashlib.sha256((password + '_vigenere').encode('utf-8')).digest()
     h3 = hashlib.sha256((password + '_iv').encode('utf-8')).digest()
@@ -58,10 +46,6 @@ def derive_keys(password: str):
 # ═══════════════════════════════════════════════════════════════
 
 def vigenere_encrypt(plaintext: str, key: str) -> str:
-    """
-    Enkripsi Vigenere pada seluruh karakter printable ASCII (32-126).
-    Karakter di luar range dilewati tanpa perubahan.
-    """
     result  = []
     key_len = len(key)
     key_idx = 0
@@ -79,7 +63,6 @@ def vigenere_encrypt(plaintext: str, key: str) -> str:
 
 
 def vigenere_decrypt(ciphertext: str, key: str) -> str:
-    """Dekripsi Vigenere — kebalikan dari enkripsi."""
     result  = []
     key_len = len(key)
     key_idx = 0
@@ -101,26 +84,20 @@ def vigenere_decrypt(ciphertext: str, key: str) -> str:
 # ═══════════════════════════════════════════════════════════════
 
 def aes_encrypt(data: bytes, key: bytes, iv: bytes) -> bytes:
-    """Enkripsi AES-256 CBC dengan PKCS7 padding."""
     cipher = AES.new(key, AES.MODE_CBC, iv)
     return cipher.encrypt(pad(data, AES.block_size))
 
 
 def aes_decrypt(data: bytes, key: bytes, iv: bytes) -> bytes:
-    """Dekripsi AES-256 CBC dengan PKCS7 unpadding."""
     cipher = AES.new(key, AES.MODE_CBC, iv)
     return unpad(cipher.decrypt(data), AES.block_size)
 
 
 # ═══════════════════════════════════════════════════════════════
-#  DOUBLE-LAYER  (khusus TEXT: Vigenere → AES-256)
+#  DOUBLE-LAYER  (TEXT: Vigenere → AES-256)
 # ═══════════════════════════════════════════════════════════════
 
 def double_encrypt(plaintext: str, password: str) -> bytes:
-    """
-    Layer 1 : Vigenere encrypt  (plaintext  → vigenere ciphertext)
-    Layer 2 : AES-256 CBC       (vigenere ciphertext → final bytes)
-    """
     vigenere_key, aes_key, aes_iv = derive_keys(password)
     vigenere_out = vigenere_encrypt(plaintext, vigenere_key)
     aes_out      = aes_encrypt(vigenere_out.encode('utf-8'), aes_key, aes_iv)
@@ -128,10 +105,6 @@ def double_encrypt(plaintext: str, password: str) -> bytes:
 
 
 def double_decrypt(ciphertext_bytes: bytes, password: str) -> str:
-    """
-    Layer 2 balik : AES-256 CBC decrypt
-    Layer 1 balik : Vigenere decrypt
-    """
     vigenere_key, aes_key, aes_iv = derive_keys(password)
     aes_out   = aes_decrypt(ciphertext_bytes, aes_key, aes_iv)
     plaintext = vigenere_decrypt(aes_out.decode('utf-8'), vigenere_key)
@@ -140,8 +113,6 @@ def double_decrypt(ciphertext_bytes: bytes, password: str) -> str:
 
 # ═══════════════════════════════════════════════════════════════
 #  BINARY ENCRYPT  (image & file: AES-256 saja)
-#  Vigenere tidak dipakai untuk binary karena hanya cocok
-#  untuk karakter printable ASCII.
 # ═══════════════════════════════════════════════════════════════
 
 def binary_encrypt(data: bytes, password: str) -> bytes:
@@ -181,65 +152,57 @@ def parse_payload(data: bytes):
 
 
 # ═══════════════════════════════════════════════════════════════
-#  LSB STEGANOGRAFI
+#  LSB STEGANOGRAFI — SEPENUHNYA IN-MEMORY
 # ═══════════════════════════════════════════════════════════════
 
-def bytes_to_bits(data: bytes) -> str:
-    return ''.join(format(b, '08b') for b in data)
-
-
-def bits_to_bytes(bits: str) -> bytes:
-    return bytes(int(bits[i:i+8], 2) for i in range(0, len(bits), 8))
-
-
-def max_capacity_bytes(img: Image.Image) -> int:
+def encode_lsb(carrier_stream, payload_bytes: bytes) -> io.BytesIO:
+    """Terima file-like object, kembalikan BytesIO berisi PNG hasil encode."""
+    img = Image.open(carrier_stream).convert('RGB')
     w, h = img.size
-    return (w * h * 3) // 8 - 4
-
-
-def encode_lsb(image_path: str, payload_bytes: bytes, output_path: str):
-    img      = Image.open(image_path).convert('RGB')
-    capacity = max_capacity_bytes(img)
+    capacity = (w * h * 3) // 8 - 4
 
     if len(payload_bytes) > capacity:
-        raise ValueError(
-            f"Payload terlalu besar ({len(payload_bytes):,} bytes). "
-            f"Kapasitas gambar: {capacity:,} bytes."
-        )
+        raise ValueError(f"Payload terlalu besar ({len(payload_bytes)} bytes). Kapasitas: {capacity} bytes.")
 
-    bits      = bytes_to_bits(payload_bytes)
+    bits      = ''.join(format(b, '08b') for b in payload_bytes)
     full_bits = format(len(bits), '032b') + bits
 
     pixels     = list(img.getdata())
     new_pixels = []
-    bit_index  = 0
+    bit_idx    = 0
     total_bits = len(full_bits)
 
     for pixel in pixels:
-        r, g, b  = pixel
-        channels = [r, g, b]
+        channels = list(pixel)
         for i in range(3):
-            if bit_index < total_bits:
-                channels[i] = (channels[i] & ~1) | int(full_bits[bit_index])
-                bit_index  += 1
+            if bit_idx < total_bits:
+                channels[i] = (channels[i] & ~1) | int(full_bits[bit_idx])
+                bit_idx += 1
         new_pixels.append(tuple(channels))
 
     out = Image.new('RGB', img.size)
     out.putdata(new_pixels)
-    out.save(output_path, format='PNG')
+
+    buf = io.BytesIO()
+    out.save(buf, format='PNG')
+    buf.seek(0)
+    return buf
 
 
-def decode_lsb(image_path: str) -> bytes:
-    img      = Image.open(image_path).convert('RGB')
-    all_bits = ''
+def decode_lsb(image_stream) -> bytes:
+    """Terima file-like object, kembalikan payload bytes."""
+    img      = Image.open(image_stream).convert('RGB')
+    all_bits = ""
 
     for pixel in img.getdata():
         for channel in pixel:
             all_bits += str(channel & 1)
-
-    bit_count    = int(all_bits[:32], 2)
-    payload_bits = all_bits[32:32 + bit_count]
-    return bits_to_bytes(payload_bits)
+            if len(all_bits) >= 32:
+                bit_count = int(all_bits[:32], 2)
+                if len(all_bits) >= 32 + bit_count:
+                    payload_bits = all_bits[32:32 + bit_count]
+                    return bytes(int(payload_bits[i:i+8], 2) for i in range(0, len(payload_bits), 8))
+    return b""
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -253,95 +216,78 @@ def index():
 
 @app.route('/encode/text', methods=['POST'])
 def encode_text():
-    carrier  = request.files['image']
-    text     = request.form['text']
-    password = request.form['password']
-
-    if not password:
-        return jsonify({'error': 'Password tidak boleh kosong.'}), 400
-
-    carrier_path = os.path.join(UPLOAD_FOLDER, 'carrier_' + carrier.filename)
-    output_path  = os.path.join(RESULT_FOLDER, 'encoded.png')
-    carrier.save(carrier_path)
-
     try:
-        encrypted = double_encrypt(text, password)
-        payload   = build_payload(TYPE_TEXT, encrypted)
-        encode_lsb(carrier_path, payload, output_path)
-    except ValueError as e:
-        return jsonify({'error': str(e)}), 400
+        carrier  = request.files['image']
+        text     = request.form['text']
+        password = request.form['password']
 
-    return send_file(output_path, as_attachment=True, download_name='stegovault_encoded.png')
+        encrypted  = double_encrypt(text, password)
+        payload    = build_payload(TYPE_TEXT, encrypted)
+        output_buf = encode_lsb(carrier.stream, payload)
+
+        return send_file(output_buf, mimetype='image/png',
+                         as_attachment=True, download_name='encoded.png')
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
 
 
 @app.route('/encode/image', methods=['POST'])
 def encode_image_route():
-    carrier  = request.files['carrier']
-    secret   = request.files['secret_image']
-    password = request.form['password']
-
-    if not password:
-        return jsonify({'error': 'Password tidak boleh kosong.'}), 400
-
-    carrier_path = os.path.join(UPLOAD_FOLDER, 'carrier_' + carrier.filename)
-    secret_path  = os.path.join(UPLOAD_FOLDER, 'secret_'  + secret.filename)
-    output_path  = os.path.join(RESULT_FOLDER, 'encoded.png')
-    carrier.save(carrier_path)
-    secret.save(secret_path)
-
     try:
-        with open(secret_path, 'rb') as f:
-            secret_bytes = f.read()
-        encrypted = binary_encrypt(secret_bytes, password)
-        payload   = build_payload(TYPE_IMAGE, encrypted, filename=secret.filename)
-        encode_lsb(carrier_path, payload, output_path)
-    except ValueError as e:
-        return jsonify({'error': str(e)}), 400
+        carrier  = request.files['carrier']
+        secret   = request.files['secret_image']
+        password = request.form['password']
 
-    return send_file(output_path, as_attachment=True, download_name='stegovault_encoded.png')
+        if not password:
+            return jsonify({'error': 'Password tidak boleh kosong.'}), 400
+
+        # Baca langsung dari stream — tidak ada file yang disimpan
+        secret_bytes = secret.stream.read()
+        encrypted    = binary_encrypt(secret_bytes, password)
+        payload      = build_payload(TYPE_IMAGE, encrypted, filename=secret.filename)
+        output_buf   = encode_lsb(carrier.stream, payload)
+
+        return send_file(output_buf, mimetype='image/png',
+                         as_attachment=True, download_name='stegovault_encoded.png')
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
 
 
 @app.route('/encode/file', methods=['POST'])
 def encode_file_route():
-    carrier     = request.files['carrier']
-    secret_file = request.files['secret_file']
-    password    = request.form['password']
-
-    if not password:
-        return jsonify({'error': 'Password tidak boleh kosong.'}), 400
-
-    carrier_path = os.path.join(UPLOAD_FOLDER, 'carrier_' + carrier.filename)
-    secret_path  = os.path.join(UPLOAD_FOLDER, 'secret_'  + secret_file.filename)
-    output_path  = os.path.join(RESULT_FOLDER, 'encoded.png')
-    carrier.save(carrier_path)
-    secret_file.save(secret_path)
-
     try:
-        with open(secret_path, 'rb') as f:
-            file_bytes = f.read()
-        encrypted = binary_encrypt(file_bytes, password)
-        payload   = build_payload(TYPE_FILE, encrypted, filename=secret_file.filename)
-        encode_lsb(carrier_path, payload, output_path)
-    except ValueError as e:
-        return jsonify({'error': str(e)}), 400
+        carrier     = request.files['carrier']
+        secret_file = request.files['secret_file']
+        password    = request.form['password']
 
-    return send_file(output_path, as_attachment=True, download_name='stegovault_encoded.png')
+        if not password:
+            return jsonify({'error': 'Password tidak boleh kosong.'}), 400
+
+        # Baca langsung dari stream — tidak ada file yang disimpan
+        file_bytes = secret_file.stream.read()
+        encrypted  = binary_encrypt(file_bytes, password)
+        payload    = build_payload(TYPE_FILE, encrypted, filename=secret_file.filename)
+        output_buf = encode_lsb(carrier.stream, payload)
+
+        return send_file(output_buf, mimetype='image/png',
+                         as_attachment=True, download_name='stegovault_encoded.png')
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
 
 
 @app.route('/decode', methods=['POST'])
 def decode():
-    file     = request.files['image']
-    password = request.form['password']
-
-    if not password:
-        return jsonify({'error': 'Password tidak boleh kosong.'}), 400
-
-    input_path = os.path.join(UPLOAD_FOLDER, 'decode_' + file.filename)
-    file.save(input_path)
-
     try:
-        raw_payload  = decode_lsb(input_path)
+        file     = request.files['image']
+        password = request.form['password']
+
+        if not password:
+            return jsonify({'error': 'Password tidak boleh kosong.'}), 400
+
+        # Decode langsung dari stream upload
+        raw_payload = decode_lsb(file.stream)
         ptype, filename, encrypted_data = parse_payload(raw_payload)
+
     except Exception as e:
         return jsonify({'error': 'Gagal membaca payload: ' + str(e)}), 400
 
@@ -354,43 +300,31 @@ def decode():
             decrypted = binary_decrypt(encrypted_data, password)
             mime      = mimetypes.guess_type(filename)[0] or 'image/png'
             b64       = base64.b64encode(decrypted).decode('utf-8')
-            out_path  = os.path.join(RESULT_FOLDER, 'decoded_' + filename)
-            with open(out_path, 'wb') as f:
-                f.write(decrypted)
+            # Kirim langsung via base64 — tidak ada file yang disimpan
             return jsonify({
-                'type'        : 'image',
-                'filename'    : filename,
-                'mime'        : mime,
-                'preview'     : f'data:{mime};base64,{b64}',
-                'download_url': f'/download/{os.path.basename(out_path)}'
+                'type'    : 'image',
+                'filename': filename,
+                'mime'    : mime,
+                'preview' : f'data:{mime};base64,{b64}',
             })
 
         elif ptype == TYPE_FILE:
             decrypted = binary_decrypt(encrypted_data, password)
             mime      = mimetypes.guess_type(filename)[0] or 'application/octet-stream'
-            out_path  = os.path.join(RESULT_FOLDER, 'decoded_' + filename)
-            with open(out_path, 'wb') as f:
-                f.write(decrypted)
+            b64       = base64.b64encode(decrypted).decode('utf-8')
+            # Kirim sebagai base64 — tidak ada file yang disimpan
             return jsonify({
-                'type'        : 'file',
-                'filename'    : filename,
-                'mime'        : mime,
-                'size'        : len(decrypted),
-                'download_url': f'/download/{os.path.basename(out_path)}'
+                'type'    : 'file',
+                'filename': filename,
+                'mime'    : mime,
+                'size'    : len(decrypted),
+                'data'    : b64,          # frontend pakai ini untuk trigger download
             })
 
     except Exception:
         return jsonify({'error': 'Dekripsi gagal — password salah atau data korup.'}), 400
 
     return jsonify({'error': 'Tipe payload tidak dikenal.'}), 400
-
-
-@app.route('/download/<filename>')
-def download_file(filename):
-    path = os.path.join(RESULT_FOLDER, filename)
-    if not os.path.exists(path):
-        return 'File tidak ditemukan.', 404
-    return send_file(path, as_attachment=True)
 
 
 if __name__ == '__main__':
