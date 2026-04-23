@@ -19,38 +19,16 @@
                 </div>
                 <h1 class="app-title">Stego<span>Vault</span></h1>
             </div>
-            <p class="tagline">// vigenere · aes-256 · lsb steganography</p>
+            
         </header>
 
         <div class="status-bar">
             <div class="status-dot"></div>
             <span>SYSTEM ONLINE</span>
             <span class="sep">|</span>
-            <span>VIGENERE + AES-256</span>
-            <span class="sep">|</span>
             <span>LSB PNG MODE</span>
         </div>
 
-        <!-- Encryption info banner -->
-        <div class="crypto-banner">
-            <div class="crypto-layer">
-                <span class="crypto-num">01</span>
-                <span class="crypto-name">VIGENERE CIPHER</span>
-                <span class="crypto-desc">Classical substitution · printable ASCII · key derived from password</span>
-            </div>
-            <div class="crypto-arrow">→</div>
-            <div class="crypto-layer">
-                <span class="crypto-num">02</span>
-                <span class="crypto-name">AES-256 CBC</span>
-                <span class="crypto-desc">Modern block cipher · 256-bit key · PKCS7 padding</span>
-            </div>
-            <div class="crypto-arrow">→</div>
-            <div class="crypto-layer">
-                <span class="crypto-num">03</span>
-                <span class="crypto-name">LSB STEGANOGRAPHY</span>
-                <span class="crypto-desc">Bit-level concealment · 3-channel RGB · PNG lossless</span>
-            </div>
-        </div>
 
         <div class="panels">
 
@@ -91,13 +69,13 @@
                     <div class="field-group">
                         <label class="field-label">// encryption password</label>
                         <div class="input-wrap">
-                            <input type="password" name="password" required placeholder="Password untuk enkripsi Vigenere + AES-256" class="text-input">
+                            <input type="password" name="password" required placeholder="Password untuk enkripsi" class="text-input">
                             <button type="button" class="toggle-pw" title="Show/Hide">◉</button>
                         </div>
                     </div>
                     <div class="info-box cyan">
-                        <p>Text: Vigenere → AES-256 (double layer)</p>
-                        <p>Key derivasi otomatis dari password via SHA-256</p>
+                        <p>Text: Enkripsi (double layer)</p>
+                        <p>Key derivasi </p>
                     </div>
                     <button type="submit" class="btn btn-encode">⬡ Encrypt &amp; Encode</button>
                 </form>
@@ -203,7 +181,7 @@
 
                 <div class="info-box green">
                     <p>Auto-detect payload type (text / image / file)</p>
-                    <p>AES-256 decrypt → Vigenere decrypt (untuk text)</p>
+                    <p>Melakukan decrypt</p>
                     <p>Preview hasil sebelum download</p>
                 </div>
 
@@ -256,7 +234,6 @@
 
         <footer class="footer">
             <span>FLASK</span> + <span>PYTHON</span> &nbsp;//&nbsp;
-            VIGENERE + AES-256 + LSB &nbsp;//&nbsp;
             <span style="color: var(--accent-cyan);">DOUBLE LAYER CRYPTO</span>
         </footer>
     </div>
