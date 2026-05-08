@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>StegoVault — Hidden in Plain Sight</title>
-    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <title>StegaIn — Hidden in Plain Sight</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Unbounded:wght@400;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
@@ -12,29 +12,24 @@
         <header class="header">
             <div class="logo-line">
                 <div class="logo-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="#00d4ff" stroke-width="2" stroke-linecap="round">
+                    <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                         <rect x="3" y="11" width="18" height="11" rx="1"/>
                         <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
                     </svg>
                 </div>
-                <h1 class="app-title">Stego<span>Vault</span></h1>
+                <div>
+                    <h1 class="app-title">Stega<span>In</span></h1>
+                    <p class="tagline">// Double Layer Encryption · LSB Steganography</p>
+                </div>
             </div>
-            
         </header>
-
-        <div class="status-bar">
-            <div class="status-dot"></div>
-            <span>SYSTEM ONLINE</span>
-            <span class="sep">|</span>
-            <span>LSB PNG MODE</span>
-        </div>
 
 
         <div class="panels">
 
             <!-- ══ ENCODE PANEL ══ -->
             <div class="panel panel-encode">
-                <div class="hex-strip">53 54 45 47 4F 56 41 55 4C 54 20 2F 2F 20 45 4E 43 4F 44 45 52</div>
+                <div class="hex-strip">45 4E 43 4F 44 45 52 20 2F 2F 20 56 49 47 45 4E 45 52 45 20 2B 20 41 45 53 2D 32 35 36 20 2B 20 4C 53 42</div>
 
                 <div class="panel-header">
                     <div>
@@ -44,7 +39,6 @@
                     <div class="panel-badge">WRITE</div>
                 </div>
 
-                <!-- Mode Tabs -->
                 <div class="mode-tabs">
                     <button class="mode-tab active" data-mode="text">TEXT</button>
                     <button class="mode-tab" data-mode="image">IMAGE</button>
@@ -74,8 +68,8 @@
                         </div>
                     </div>
                     <div class="info-box cyan">
-                        <p>Text: Enkripsi (double layer)</p>
-                        <p>Key derivasi </p>
+                        <p>Text: double layer</p>
+                        <p>Key derivasi otomatis via SHA-256</p>
                     </div>
                     <button type="submit" class="btn btn-encode">⬡ Encrypt &amp; Encode</button>
                 </form>
@@ -151,7 +145,7 @@
 
             <!-- ══ DECODE PANEL ══ -->
             <div class="panel panel-decode">
-                <div class="hex-strip">53 54 45 47 4F 56 41 55 4C 54 20 2F 2F 20 44 45 43 4F 44 45 52</div>
+                <div class="hex-strip">44 45 43 4F 44 45 52 20 2F 2F 20 41 45 53 2D 32 35 36 20 2B 20 56 49 47 45 4E 45 52 45 20 2B 20 4C 53 42</div>
 
                 <div class="panel-header">
                     <div>
@@ -165,7 +159,7 @@
                     <label class="field-label">// encoded target image</label>
                     <div class="file-zone decode-zone" id="decode-zone">
                         <input type="file" id="decode-file" accept="image/*">
-                        <span class="file-icon" style="color: var(--accent-green);">◈</span>
+                        <span class="file-icon">◈</span>
                         <div class="file-text">DROP ENCODED IMAGE</div>
                         <div class="file-name" id="decode-fname"></div>
                     </div>
@@ -181,13 +175,12 @@
 
                 <div class="info-box green">
                     <p>Auto-detect payload type (text / image / file)</p>
-                    <p>Melakukan decrypt</p>
+                    <p>double layer decrypt (untuk text)</p>
                     <p>Preview hasil sebelum download</p>
                 </div>
 
                 <button class="btn btn-decode" id="decode-btn">⬡ Decrypt &amp; Extract</button>
 
-                <!-- Loading -->
                 <div id="decode-loading" class="loading hidden">
                     <span class="loading-dot"></span>
                     <span class="loading-dot"></span>
@@ -195,10 +188,8 @@
                     <span class="loading-label">DECRYPTING PAYLOAD...</span>
                 </div>
 
-                <!-- Error -->
                 <div id="decode-error" class="error-box hidden"></div>
 
-                <!-- Result -->
                 <div id="decode-result" class="decode-result hidden">
                     <div class="result-header">
                         <span class="field-label" style="margin:0;">// extracted payload</span>
@@ -215,7 +206,7 @@
 
                     <div id="result-file" class="result-block hidden">
                         <div class="file-result-info">
-                            <span class="file-icon" style="font-size:1.8rem; color: var(--accent-green);">◈</span>
+                            <span class="file-icon" style="font-size:1.8rem;">◈</span>
                             <div>
                                 <div id="result-file-name" class="result-filename"></div>
                                 <div id="result-file-size" class="result-filesize"></div>
@@ -234,11 +225,11 @@
 
         <footer class="footer">
             <span>FLASK</span> + <span>PYTHON</span> &nbsp;//&nbsp;
-            <span style="color: var(--accent-cyan);">DOUBLE LAYER CRYPTO</span>
+            Double Encryption + LSB &nbsp;//&nbsp;
+            <span>DOUBLE LAYER CRYPTO</span>
         </footer>
     </div>
 
-<!-- Ganti SELURUH blok <script> dengan ini -->
 <script>
     // ── Mode tabs ──
     document.querySelectorAll('.mode-tab').forEach(tab => {
@@ -275,18 +266,18 @@
         btn.addEventListener('click', function () {
             const input = this.previousElementSibling;
             input.type  = input.type === 'password' ? 'text' : 'password';
-            this.style.opacity = input.type === 'text' ? '1' : '0.5';
+            this.style.background = input.type === 'text' ? 'var(--accent-4)' : 'var(--accent-2)';
         });
     });
 
-    // ── Encode forms (semua mode) ──
+    // ── Encode forms ──
     document.querySelectorAll('.encode-form').forEach(form => {
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             const formData  = new FormData(form);
             const submitBtn = form.querySelector('button[type="submit"]');
             const origText  = submitBtn.textContent;
-            submitBtn.textContent = 'PROCESSING...';
+            submitBtn.textContent = '⏳ PROCESSING...';
             submitBtn.disabled    = true;
             try {
                 const response = await fetch(form.action, { method: 'POST', body: formData });
@@ -333,24 +324,17 @@
         }
     });
 
-    // ── Helpers ──
-
     function triggerDownload(url, filename) {
         const a = document.createElement('a');
-        a.href     = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
+        a.href = url; a.download = filename;
+        document.body.appendChild(a); a.click(); a.remove();
     }
 
-    // Konversi base64 → Blob → object URL → trigger download
     function base64Download(b64, mime, filename) {
         const binary = atob(b64);
         const bytes  = new Uint8Array(binary.length);
         for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-        const blob = new Blob([bytes], { type: mime });
-        triggerDownload(URL.createObjectURL(blob), filename);
+        triggerDownload(URL.createObjectURL(new Blob([bytes], { type: mime })), filename);
     }
 
     function hideResult() {
@@ -367,7 +351,7 @@
 
     function showError(msg) {
         const el = document.getElementById('decode-error');
-        el.textContent = '> ERROR: ' + msg;
+        el.textContent = '⚠ ERROR: ' + msg;
         el.classList.remove('hidden');
     }
 
@@ -388,28 +372,17 @@
             badge.className   = 'result-type-badge type-image';
             document.getElementById('result-image-preview').src = data.preview;
             document.getElementById('result-image').classList.remove('hidden');
-
-            // ✅ Download dari base64 — tidak perlu /download/ route
             dl.style.display = 'block';
-            dl.onclick = (e) => {
-                e.preventDefault();
-                base64Download(data.preview.split(',')[1], data.mime, data.filename);
-            };
+            dl.onclick = (e) => { e.preventDefault(); base64Download(data.preview.split(',')[1], data.mime, data.filename); };
 
         } else if (data.type === 'file') {
             badge.textContent = 'FILE';
             badge.className   = 'result-type-badge type-file';
             document.getElementById('result-file-name').textContent = data.filename;
-            document.getElementById('result-file-size').textContent =
-                formatBytes(data.size) + ' · ' + (data.mime || 'binary');
+            document.getElementById('result-file-size').textContent = formatBytes(data.size) + ' · ' + (data.mime || 'binary');
             document.getElementById('result-file').classList.remove('hidden');
-
-            // ✅ Download dari base64 — tidak perlu /download/ route
             dl.style.display = 'block';
-            dl.onclick = (e) => {
-                e.preventDefault();
-                base64Download(data.data, data.mime, data.filename);
-            };
+            dl.onclick = (e) => { e.preventDefault(); base64Download(data.data, data.mime, data.filename); };
         }
     }
 

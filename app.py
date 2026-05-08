@@ -152,7 +152,7 @@ def parse_payload(data: bytes):
 
 
 # ═══════════════════════════════════════════════════════════════
-#  LSB STEGANOGRAFI — SEPENUHNYA IN-MEMORY
+#  LSB STEGANOGRAFI 
 # ═══════════════════════════════════════════════════════════════
 
 def encode_lsb(carrier_stream, payload_bytes: bytes) -> io.BytesIO:
