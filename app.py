@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, send_file, jsonify
 from PIL import Image
-from Crypto.Cipher import AES
+from Crypto.Cipher import AES, ChaCha20
 from Crypto.Util.Padding import pad, unpad
 import hashlib
 import os
@@ -26,57 +26,48 @@ TYPE_FILE  = 0x03
 
 
 # ═══════════════════════════════════════════════════════════════
-#  KEY DERIVATION
+#  KEY DERIVATION (Menghasilkan Kunci untuk 3 Layer)
 # ═══════════════════════════════════════════════════════════════
 
 def derive_keys(password: str):
-    h1 = hashlib.sha256(password.encode('utf-8')).digest()
-    h2 = hashlib.sha256((password + '_vigenere').encode('utf-8')).digest()
-    h3 = hashlib.sha256((password + '_iv').encode('utf-8')).digest()
+    # Layer 1 Kunci: Vigenere
+    h_vig  = hashlib.sha256((password + '_vigenere').encode('utf-8')).digest()
+    # Layer 2 Kunci & IV: AES-256 CBC
+    h_aes  = hashlib.sha256((password + '_aes').encode('utf-8')).digest()
+    h_iv   = hashlib.sha256((password + '_aes_iv').encode('utf-8')).digest()
+    # Layer 3 Kunci & Nonce: ChaCha20
+    h_cc20 = hashlib.sha256((password + '_chacha').encode('utf-8')).digest()
+    h_nonce= hashlib.sha256((password + '_chacha_nonce').encode('utf-8')).digest()
 
-    aes_key      = h1
-    aes_iv       = h3[:16]
-    vigenere_key = ''.join(chr(ord('A') + (b % 26)) for b in h2)
+    vigenere_key = h_vig
+    aes_key      = h_aes
+    aes_iv       = h_iv[:16]
+    chacha_key   = h_cc20
+    chacha_nonce = h_nonce[:12] # ChaCha20 umumnya menggunakan 12 bytes nonce
 
-    return vigenere_key, aes_key, aes_iv
+    return vigenere_key, aes_key, aes_iv, chacha_key, chacha_nonce
 
 
 # ═══════════════════════════════════════════════════════════════
-#  LAYER 1 — VIGENERE CIPHER
+#  LAYER 1 — VIGENERE CIPHER (BYTE-LEVEL)
 # ═══════════════════════════════════════════════════════════════
 
-def vigenere_encrypt(plaintext: str, key: str) -> str:
-    result  = []
-    key_len = len(key)
-    key_idx = 0
-
-    for ch in plaintext:
-        if 32 <= ord(ch) <= 126:
-            shift  = ord(key[key_idx % key_len]) - ord('A')
-            new_ch = chr((ord(ch) - 32 + shift) % 95 + 32)
-            result.append(new_ch)
-            key_idx += 1
-        else:
-            result.append(ch)
-
-    return ''.join(result)
+def vigenere_encrypt_bytes(plain_bytes: bytes, key_bytes: bytes) -> bytes:
+    cipher_bytes = bytearray()
+    key_len = len(key_bytes)
+    for idx, b in enumerate(plain_bytes):
+        shift = key_bytes[idx % key_len]
+        cipher_bytes.append((b + shift) % 256)
+    return bytes(cipher_bytes)
 
 
-def vigenere_decrypt(ciphertext: str, key: str) -> str:
-    result  = []
-    key_len = len(key)
-    key_idx = 0
-
-    for ch in ciphertext:
-        if 32 <= ord(ch) <= 126:
-            shift  = ord(key[key_idx % key_len]) - ord('A')
-            new_ch = chr((ord(ch) - 32 - shift) % 95 + 32)
-            result.append(new_ch)
-            key_idx += 1
-        else:
-            result.append(ch)
-
-    return ''.join(result)
+def vigenere_decrypt_bytes(cipher_bytes: bytes, key_bytes: bytes) -> bytes:
+    plain_bytes = bytearray()
+    key_len = len(key_bytes)
+    for idx, b in enumerate(cipher_bytes):
+        shift = key_bytes[idx % key_len]
+        plain_bytes.append((b - shift) % 256)
+    return bytes(plain_bytes)
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -94,35 +85,51 @@ def aes_decrypt(data: bytes, key: bytes, iv: bytes) -> bytes:
 
 
 # ═══════════════════════════════════════════════════════════════
-#  DOUBLE-LAYER  (TEXT: Vigenere → AES-256)
+#  LAYER 3 — CHACHA20 STREAM CIPHER
 # ═══════════════════════════════════════════════════════════════
 
-def double_encrypt(plaintext: str, password: str) -> bytes:
-    vigenere_key, aes_key, aes_iv = derive_keys(password)
-    vigenere_out = vigenere_encrypt(plaintext, vigenere_key)
-    aes_out      = aes_encrypt(vigenere_out.encode('utf-8'), aes_key, aes_iv)
-    return aes_out
+def chacha20_encrypt(data: bytes, key: bytes, nonce: bytes) -> bytes:
+    cipher = ChaCha20.new(key=key, nonce=nonce)
+    return cipher.encrypt(data)
 
 
-def double_decrypt(ciphertext_bytes: bytes, password: str) -> str:
-    vigenere_key, aes_key, aes_iv = derive_keys(password)
-    aes_out   = aes_decrypt(ciphertext_bytes, aes_key, aes_iv)
-    plaintext = vigenere_decrypt(aes_out.decode('utf-8'), vigenere_key)
-    return plaintext
+def chacha20_decrypt(data: bytes, key: bytes, nonce: bytes) -> bytes:
+    cipher = ChaCha20.new(key=key, nonce=nonce)
+    return cipher.decrypt(data)
 
 
 # ═══════════════════════════════════════════════════════════════
-#  BINARY ENCRYPT  (image & file: AES-256 saja)
+#  TRIPLE-LAYER ENCRYPTION & DECRYPTION (FOR ALL PAYLOADS)
 # ═══════════════════════════════════════════════════════════════
 
-def binary_encrypt(data: bytes, password: str) -> bytes:
-    _, aes_key, aes_iv = derive_keys(password)
-    return aes_encrypt(data, aes_key, aes_iv)
+def triple_encrypt_bytes(data_bytes: bytes, password: str) -> bytes:
+    vigenere_key, aes_key, aes_iv, chacha_key, chacha_nonce = derive_keys(password)
+    
+    # Lapis 1: Vigenere Cipher (Byte-Level)
+    l1_out = vigenere_encrypt_bytes(data_bytes, vigenere_key)
+    
+    # Lapis 2: AES-256-CBC
+    l2_out = aes_encrypt(l1_out, aes_key, aes_iv)
+    
+    # Lapis 3: ChaCha20
+    l3_out = chacha20_encrypt(l2_out, chacha_key, chacha_nonce)
+    
+    return l3_out
 
 
-def binary_decrypt(data: bytes, password: str) -> bytes:
-    _, aes_key, aes_iv = derive_keys(password)
-    return aes_decrypt(data, aes_key, aes_iv)
+def triple_decrypt_bytes(ciphertext_bytes: bytes, password: str) -> bytes:
+    vigenere_key, aes_key, aes_iv, chacha_key, chacha_nonce = derive_keys(password)
+    
+    # Lapis 3: Dekripsi ChaCha20
+    l2_in = chacha20_decrypt(ciphertext_bytes, chacha_key, chacha_nonce)
+    
+    # Lapis 2: Dekripsi AES-256-CBC
+    l1_in = aes_decrypt(l2_in, aes_key, aes_iv)
+    
+    # Lapis 1: Dekripsi Vigenere Cipher (Byte-Level)
+    plain_bytes = vigenere_decrypt_bytes(l1_in, vigenere_key)
+    
+    return plain_bytes
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -156,7 +163,6 @@ def parse_payload(data: bytes):
 # ═══════════════════════════════════════════════════════════════
 
 def encode_lsb(carrier_stream, payload_bytes: bytes) -> io.BytesIO:
-    """Terima file-like object, kembalikan BytesIO berisi PNG hasil encode."""
     img = Image.open(carrier_stream).convert('RGB')
     w, h = img.size
     capacity = (w * h * 3) // 8 - 4
@@ -190,7 +196,6 @@ def encode_lsb(carrier_stream, payload_bytes: bytes) -> io.BytesIO:
 
 
 def decode_lsb(image_stream) -> bytes:
-    """Terima file-like object, kembalikan payload bytes."""
     img      = Image.open(image_stream).convert('RGB')
     all_bits = ""
 
@@ -221,7 +226,8 @@ def encode_text():
         text     = request.form['text']
         password = request.form['password']
 
-        encrypted  = double_encrypt(text, password)
+        text_bytes = text.encode('utf-8')
+        encrypted  = triple_encrypt_bytes(text_bytes, password)
         payload    = build_payload(TYPE_TEXT, encrypted)
         output_buf = encode_lsb(carrier.stream, payload)
 
@@ -241,9 +247,8 @@ def encode_image_route():
         if not password:
             return jsonify({'error': 'Password tidak boleh kosong.'}), 400
 
-        # Baca langsung dari stream — tidak ada file yang disimpan
         secret_bytes = secret.stream.read()
-        encrypted    = binary_encrypt(secret_bytes, password)
+        encrypted    = triple_encrypt_bytes(secret_bytes, password)
         payload      = build_payload(TYPE_IMAGE, encrypted, filename=secret.filename)
         output_buf   = encode_lsb(carrier.stream, payload)
 
@@ -263,9 +268,8 @@ def encode_file_route():
         if not password:
             return jsonify({'error': 'Password tidak boleh kosong.'}), 400
 
-        # Baca langsung dari stream — tidak ada file yang disimpan
         file_bytes = secret_file.stream.read()
-        encrypted  = binary_encrypt(file_bytes, password)
+        encrypted  = triple_encrypt_bytes(file_bytes, password)
         payload    = build_payload(TYPE_FILE, encrypted, filename=secret_file.filename)
         output_buf = encode_lsb(carrier.stream, payload)
 
@@ -284,7 +288,6 @@ def decode():
         if not password:
             return jsonify({'error': 'Password tidak boleh kosong.'}), 400
 
-        # Decode langsung dari stream upload
         raw_payload = decode_lsb(file.stream)
         ptype, filename, encrypted_data = parse_payload(raw_payload)
 
@@ -292,15 +295,15 @@ def decode():
         return jsonify({'error': 'Gagal membaca payload: ' + str(e)}), 400
 
     try:
+        decrypted = triple_decrypt_bytes(encrypted_data, password)
+
         if ptype == TYPE_TEXT:
-            plaintext = double_decrypt(encrypted_data, password)
+            plaintext = decrypted.decode('utf-8')
             return jsonify({'type': 'text', 'content': plaintext})
 
         elif ptype == TYPE_IMAGE:
-            decrypted = binary_decrypt(encrypted_data, password)
             mime      = mimetypes.guess_type(filename)[0] or 'image/png'
             b64       = base64.b64encode(decrypted).decode('utf-8')
-            # Kirim langsung via base64 — tidak ada file yang disimpan
             return jsonify({
                 'type'    : 'image',
                 'filename': filename,
@@ -309,16 +312,14 @@ def decode():
             })
 
         elif ptype == TYPE_FILE:
-            decrypted = binary_decrypt(encrypted_data, password)
             mime      = mimetypes.guess_type(filename)[0] or 'application/octet-stream'
             b64       = base64.b64encode(decrypted).decode('utf-8')
-            # Kirim sebagai base64 — tidak ada file yang disimpan
             return jsonify({
                 'type'    : 'file',
                 'filename': filename,
                 'mime'    : mime,
                 'size'    : len(decrypted),
-                'data'    : b64,          # frontend pakai ini untuk trigger download
+                'data'    : b64,
             })
 
     except Exception:
