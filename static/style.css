@@ -103,9 +103,6 @@ body {
     gap: 1.5rem;
 
     justify-content: center;
-    /* align-content: space-around;
-    grid-auto-flow: row;
-    align-items: start; */
 }
 @media (max-width: 680px) { .panels { grid-template-columns: 1fr; } }
 

@@ -43,7 +43,7 @@ def derive_keys(password: str):
     aes_key      = h_aes
     aes_iv       = h_iv[:16]
     chacha_key   = h_cc20
-    chacha_nonce = h_nonce[:12] # ChaCha20 umumnya menggunakan 12 bytes nonce
+    chacha_nonce = h_nonce[:12]
 
     return vigenere_key, aes_key, aes_iv, chacha_key, chacha_nonce
 
