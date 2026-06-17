@@ -104,22 +104,30 @@ def chacha20_decrypt(data: bytes, key: bytes, nonce: bytes) -> bytes:
 
 def triple_encrypt_bytes(data_bytes: bytes, password: str) -> bytes:
     vigenere_key, aes_key, aes_iv, chacha_key, chacha_nonce = derive_keys(password)
-    
+    print("\n" + "="*30)
+    print("Enkripsi")
+    print("="*30)
+    print(f"Data Awal (Hex) : {data_bytes[:20].hex()}...")
     # Lapis 1: Vigenere Cipher (Byte-Level)
     l1_out = vigenere_encrypt_bytes(data_bytes, vigenere_key)
+    print(f"Layer 1(Vigenere Cipher) : {l1_out[:20].hex()}...")
     
     # Lapis 2: AES-256-CBC
     l2_out = aes_encrypt(l1_out, aes_key, aes_iv)
+    print(f"Layer 2(AES 256) : {l2_out[:20].hex()}...")
     
     # Lapis 3: ChaCha20
     l3_out = chacha20_encrypt(l2_out, chacha_key, chacha_nonce)
-    
+    print(f"Layer 3(ChaCha20) : {l3_out[:20].hex()}...")
+
+    print("\n" + "="*30)
+    print("Enkripsi Selesai")
+    print("="*30)
     return l3_out
 
 
 def triple_decrypt_bytes(ciphertext_bytes: bytes, password: str) -> bytes:
     vigenere_key, aes_key, aes_iv, chacha_key, chacha_nonce = derive_keys(password)
-    
     # Lapis 3: Dekripsi ChaCha20
     l2_in = chacha20_decrypt(ciphertext_bytes, chacha_key, chacha_nonce)
     
